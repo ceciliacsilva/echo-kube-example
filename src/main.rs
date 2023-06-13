@@ -32,8 +32,8 @@ async fn main() {
         std::process::exit(1);
     }
 
-    // TODO: missing `OwnerReferences`.
     Controller::new(crd_api.clone(), Config::default())
+        .owns(crd_api, Config::default())
         .run(controller::reconcile, controller::on_error, context)
         .for_each(|reconciliation_result| async move {
             match reconciliation_result {
@@ -45,7 +45,5 @@ async fn main() {
                 }
             }
         })
-        //.filter_map(|x| async move { std::result::Result::ok(x) })
-        //.for_each(|_| futures::future::ready(()))
         .await
 }
