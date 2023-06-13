@@ -1,10 +1,10 @@
-use k8s_openapi::api::core::v1::{Service, ServiceSpec, ServicePort};
+use k8s_openapi::api::core::v1::{Service, ServicePort, ServiceSpec};
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
 use kube::api::{DeleteParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client};
 use std::collections::BTreeMap;
-use tracing::info;
+use tracing::{info, instrument};
 
 use crate::error::Error;
 
@@ -14,6 +14,8 @@ use crate::error::Error;
 /// - `client`: A Kubernetes client to be used.
 /// - `name`: Name of the `Deployment`.
 /// - `namespace`: `Service` namespace.
+// XXX: `Client` doesn't implement `Debug`.
+#[instrument(skip(client))]
 pub async fn create(
     client: Client,
     name: &str,
@@ -42,9 +44,19 @@ pub async fn create(
     };
 
     let service_api: Api<Service> = Api::namespaced(client, &namespace);
-    info!("Creating {name} service");
-    service_api.create(&PostParams::default(), &service).await?;
-    Ok(service)
+
+    match service_api.get_opt(name).await? {
+        Some(service) => {
+            //XXX: should I patch existing service?!?
+            Ok(service)
+        }
+        None => {
+            // create service
+            info!("Creating {name} service");
+            service_api.create(&PostParams::default(), &service).await?;
+            Ok(service)
+        }
+    }
 }
 
 /// Delete `Expose` HttpEcho `Service`.
@@ -53,9 +65,21 @@ pub async fn create(
 /// - `client`: Kubernetes client to delete `service`.
 /// - `name`: Name of the `Service` to be deleted.
 /// - `namespace`: `Service`'s namespace.
+// XXX: `Client` doesn't implement `Debug`.
+#[instrument(skip(client))]
 pub async fn delete(client: Client, name: &str, namespace: &str) -> Result<(), Error> {
     let service_api: Api<Service> = Api::namespaced(client, &namespace);
-    info!("Deleting {name} service");
-    service_api.delete(name, &DeleteParams::default()).await?;
-    Ok(())
+
+    match service_api.get_opt(name).await? {
+        Some(_service) => {
+            info!("Deleting {name} service");
+            service_api.delete(name, &DeleteParams::default()).await?;
+            Ok(())
+        }
+        None => {
+            // create service
+            info!("Service {name} does not exists");
+            Ok(())
+        }
+    }
 }

@@ -32,6 +32,7 @@ async fn main() {
         std::process::exit(1);
     }
 
+    // TODO: missing `OwnerReferences`.
     Controller::new(crd_api.clone(), Config::default())
         .run(controller::reconcile, controller::on_error, context)
         .for_each(|reconciliation_result| async move {

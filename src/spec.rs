@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::info;
+use tracing::{info, instrument};
 
 /// `HttpEcho` struct `CustomResourceDefinition` specification.
 /// This type should be reflected in the `http-echo-crd.yaml` file
@@ -27,12 +27,14 @@ pub struct HttpEchoSpec {
 }
 
 impl HttpEcho {
-    /// Reconcile `HttpEcho` `CustomResourceDefinition`.
+    /// Reconcile `HttpEcho` `CustomResourceDefinition` - non-finalizer related changes.
     ///
     /// # Arguments:
     /// - `ctx`: `Controller::Context` with a Kube `Client`.
     /// - `image`: OCI image name.
     /// - `port`: Container port.
+    // XXX: `Client` doesn't implement `Debug`.
+    #[instrument(skip(ctx))]
     pub async fn reconcile(
         &self,
         ctx: Arc<Context>,
@@ -44,7 +46,6 @@ impl HttpEcho {
         let namespace = self.namespace().unwrap();
         let name = self.name_any();
 
-        info!("Starting creation procedure of {}", name);
         crate::finalizer::add(client.clone(), &name, &namespace).await?;
         crate::deployment::deploy(
             client.clone(),
@@ -57,9 +58,11 @@ impl HttpEcho {
         )
         .await?;
         crate::service::create(client, &name, port, &namespace).await?;
-        Ok(Action::requeue(Duration::from_secs(10)))
+        Ok(Action::requeue(Duration::from_secs(5 * 60)))
     }
 
+    // XXX: `Client` doesn't implement `Debug`.
+    #[instrument(skip(ctx))]
     pub async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action, Error> {
         let client = ctx.client.clone();
         // Should not be possible do not have a namespace.
@@ -70,6 +73,6 @@ impl HttpEcho {
         crate::deployment::delete(client.clone(), &name, &namespace).await?;
         crate::service::delete(client.clone(), &name, &namespace).await?;
         crate::finalizer::clean(client, &name, &namespace).await?;
-        Ok(Action::await_change())
+        Ok(Action::requeue(Duration::from_secs(5 * 60)))
     }
 }

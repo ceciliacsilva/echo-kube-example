@@ -8,7 +8,7 @@ use kube::{
 use kube::{Api, ResourceExt};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{info, warn};
+use tracing::warn;
 
 use crate::error::Error;
 use crate::spec::{self, HttpEcho};
@@ -45,7 +45,6 @@ pub(crate) async fn reconcile(
     // Should be impossible not have a namespace.
     let namespace = http_echo.namespace().unwrap();
     let echo_api: Api<spec::HttpEcho> = Api::namespaced(ctx.client.clone(), &namespace);
-    info!("Reconciling http_echo {:?}", http_echo.metadata.name);
     finalizer(&echo_api, ECHO_FINALIZER, http_echo, |event| async {
         match event {
             // XXX: must be idempotent
@@ -56,7 +55,7 @@ pub(crate) async fn reconcile(
     })
     .await
     .map_err(|e| {
-        warn!("{:?}", e);
+        warn!("\nerro aqui:{:?}\n", e);
         Error::InputError("oi".to_owned())
     })
 }
