@@ -5,4 +5,4 @@ metadata:
   namespace: default
 spec:
   replicas: 2
-  text: hello-world
+  text: Hello world
