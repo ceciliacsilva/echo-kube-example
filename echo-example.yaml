@@ -1,0 +1,8 @@
+apiVersion: test.com/v1
+kind: HttpEcho
+metadata:
+  name: test-echo
+  namespace: default
+spec:
+  replicas: 2
+  text: hello-world
