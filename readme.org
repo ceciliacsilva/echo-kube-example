@@ -1,0 +1,74 @@
+#+title: Echo `Kube` example
+
+(My) Educational example of how to create a `Kubernetes operator/controller` in
+Rust using the [[https://github.com/kube-rs/kube][Kube]] client.
+
+This repo creates a `controller` for a CRD ([[https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/][Custom Resource Definition]]) called
+`Echo` that will:
+- create a `deployment` with the `hashicorp/http-echo` image, using the number
+  of `replicas` and  `text` (as `--text={text}`) specified;
+- and create a `NodePort service` to `expose` this `deployment` externally to
+  the cluster.
+- adds a `finalizers` to control the `CRD` deletion.
+
+`Echo` example:
+
+#+BEGIN_SRC yaml
+apiVersion: test.com/v1
+kind: Echo
+metadata:
+  name: test-echo
+  namespace: default
+spec:
+  replicas: 2
+  text: Hello world
+#+END_SRC
+
+This example was deeply inspired by the projects:
+
+- https://github.com/Pscheidl/rust-kubernetes-operator-example
+- https://github.com/kube-rs/controller-rs/blob/main/src/controller.rs
+
+and in the [[https://github.com/kube-rs/kube/tree/465ec9db8900ed592d017bffc3e8a6b9ee1fb06f/examples][examples]] found in the kube repo.
+
+Ps: this repository is educational only and does not necessarily reflect
+standards that should be used in production.
+
+** Small detour
+
+In this repository I am using the terms `Kubernetes operator` and `Kubernetes
+controller` interchangeably - which is not conceptually correct - but simplifies
+our discussion.
+
+#+BEGIN_QUOTE
+Technically, there is no difference between a typical controller and an
+operator. Often the difference referred to is the operational knowledge that is
+included in the operator. As a result, a controller which spins up a pod when a
+custom resource is created and the pod gets destroyed afterwards can be
+described as a simple controller. If the controller has additional operational
+knowledge like how to upgrade or remediate from errors, it is an operator. --
+https://github.com/cncf/tag-app-delivery/blob/eece8f7307f2970f46f100f51932db106db46968/operator-wg/whitepaper/Operator-WhitePaper_v1-0.md
+#+END_QUOTE
+
+* How to use/test:
+
+- [[https://www.rust-lang.org/tools/install][Install Rust]]
+- [[https://kubernetes.io/docs/tasks/tools/][Install kubectl]]
+- Install some local (lightweight) Kubernetes distribution and create a local
+  cluster. I'm using [[https://kind.sigs.k8s.io/][Kind]].
+- Run `kubectl apply -f echoes.test.com.yaml` to create the `Echo` `cdr` definition ().
+- Run `cargo run` to start the `Echo` `controller`.
+- Run `kubectl apply -f echo-test.yaml` to create a `test-echo` `Echo crd`
+  example.
+- Run `kubectl get all` to see the `pods`, `deployment`, `services` being
+  created.
+- Run `curl <node-ip>:/<NodePort>` to get the `text` specified inside
+  `echo-test.yaml`.
+- Change the `test-echo` definition, like the number of `replicas`, then:
+  - Run `kubectl apply -f echo-test.yaml`, `kubectl get all` to watch the
+    changes happening, and `curl` again.
+
+* TODO list
+
+- [ ] Add tests.
+- [ ] Review/Add [[https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/#owners-labels-finalizers][OwnerReference]] chain.
