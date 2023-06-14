@@ -1,5 +1,5 @@
 apiVersion: test.com/v1
-kind: HttpEcho
+kind: Echo
 metadata:
   name: test-echo
   namespace: default

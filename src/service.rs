@@ -14,7 +14,7 @@ use crate::error::Error;
 /// - `client`: A Kubernetes client to be used.
 /// - `name`: Name of the `Deployment`.
 /// - `namespace`: `Service` namespace.
-// XXX: `Client` doesn't implement `Debug`.
+// NOTE: `Client` doesn't implement `Debug` so `skip(client)`.
 #[instrument(skip(client))]
 pub async fn create(
     client: Client,
@@ -34,7 +34,7 @@ pub async fn create(
             type_: Some("NodePort".to_owned()),
             selector: Some(labels.clone()),
             ports: Some(vec![ServicePort {
-                port: port,
+                port,
                 target_port: Some(IntOrString::Int(port)),
                 ..ServicePort::default()
             }]),
@@ -43,7 +43,7 @@ pub async fn create(
         ..Service::default()
     };
 
-    let service_api: Api<Service> = Api::namespaced(client, &namespace);
+    let service_api: Api<Service> = Api::namespaced(client, namespace);
 
     match service_api.get_opt(name).await? {
         Some(service) => {
@@ -68,7 +68,7 @@ pub async fn create(
 // XXX: `Client` doesn't implement `Debug`.
 #[instrument(skip(client))]
 pub async fn delete(client: Client, name: &str, namespace: &str) -> Result<(), Error> {
-    let service_api: Api<Service> = Api::namespaced(client, &namespace);
+    let service_api: Api<Service> = Api::namespaced(client, namespace);
 
     match service_api.get_opt(name).await? {
         Some(_service) => {

@@ -73,7 +73,6 @@ pub async fn deploy(
         Some(_echo) => {
             //patch deployment
             info!("Deployment {name} already exists. Replacing it.");
-
             deployment_api
                 .replace(name, &PostParams::default(), &deployment)
                 .await?;
@@ -99,7 +98,7 @@ pub async fn deploy(
 // XXX: `Client` doesn't implement `Debug`.
 #[instrument(skip(client))]
 pub async fn delete(client: Client, name: &str, namespace: &str) -> Result<(), Error> {
-    let deployment_api: Api<Deployment> = Api::namespaced(client, &namespace);
+    let deployment_api: Api<Deployment> = Api::namespaced(client, namespace);
     info!("Deleting a {name} deployment");
 
     match deployment_api.get_opt(name).await? {

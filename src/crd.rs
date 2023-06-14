@@ -16,18 +16,19 @@ use tracing::{info, instrument};
 #[kube(
     group = "test.com",
     version = "v1",
-    kind = "HttpEcho",
-    plural = "http-echoes",
-    singular = "http-echo",
+    kind = "Echo",
+    plural = "echoes",
+    singular = "echo",
     namespaced
 )]
-pub struct HttpEchoSpec {
+pub struct EchoSpec {
     pub replicas: i32,
     pub text: String,
 }
 
-impl HttpEcho {
-    /// Reconcile `HttpEcho` `CustomResourceDefinition` - non-finalizer related changes.
+impl Echo {
+    /// Reconcile `Echo` `CustomResourceDefinition`.
+    /// Add `finalizer`, deploy `deployment`, create `service`.
     ///
     /// # Arguments:
     /// - `ctx`: `Controller::Context` with a Kube `Client`.
@@ -46,7 +47,9 @@ impl HttpEcho {
         let namespace = self.namespace().unwrap();
         let name = self.name_any();
 
+        // Idempotent.
         crate::finalizer::add(client.clone(), &name, &namespace).await?;
+        // If already exists, `replace`.
         crate::deployment::deploy(
             client.clone(),
             image,
@@ -57,6 +60,7 @@ impl HttpEcho {
             &namespace,
         )
         .await?;
+        // If already exists, `NoOp`.
         crate::service::create(client, &name, port, &namespace).await?;
         Ok(Action::requeue(Duration::from_secs(5 * 60)))
     }

@@ -3,18 +3,18 @@
 pub enum Error {
     /// Errors coming from `Kubernetes`.
     #[error("Kubernetes reported error: {source}")]
-    KubeError {
+    Kube {
         #[from]
         source: kube::Error,
     },
 
     #[error("Serde_json reported error: {source}")]
-    SerdeJsonError {
+    SerdeJson {
         #[from]
         source: serde_json::Error,
     },
 
-    /// Input errors.
-    #[error("Invalid HttpEcho CRD:{0}")]
-    InputError(String),
+    /// Reconciliation error.
+    #[error("Controller reported error:{0}")]
+    ControllerError(String),
 }

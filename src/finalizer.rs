@@ -1,5 +1,5 @@
+use crate::crd::Echo;
 use crate::error::Error;
-use crate::spec::HttpEcho;
 use kube::{
     api::{Patch, PatchParams},
     Api, Client,
@@ -18,8 +18,11 @@ static ECHO_FINALIZER: &str = "echo.test.com";
 /// - `client`: Kubernetes client.
 /// - `name`: CRD resource name.
 /// - `namespace`: CRD namespace.
-pub async fn add(client: Client, name: &str, namespace: &str) -> Result<HttpEcho, Error> {
-    let api: Api<HttpEcho> = Api::namespaced(client, namespace);
+///
+/// Note: this should be idempotent.
+/// XXX: do I need to check if the `finalizer` already exists?
+pub async fn add(client: Client, name: &str, namespace: &str) -> Result<Echo, Error> {
+    let api: Api<Echo> = Api::namespaced(client, namespace);
     let finalizer: Value = json!({
         "metadata": {
             "finalizers": [ECHO_FINALIZER],
@@ -37,8 +40,10 @@ pub async fn add(client: Client, name: &str, namespace: &str) -> Result<HttpEcho
 /// - `client`: Kubernetes client.
 /// - `name`: CRD resource name.
 /// - `namespace`: CRD namespace.
-pub async fn clean(client: Client, name: &str, namespace: &str) -> Result<HttpEcho, Error> {
-    let api: Api<HttpEcho> = Api::namespaced(client, namespace);
+///
+/// Note: this should be idempotent.
+pub async fn clean(client: Client, name: &str, namespace: &str) -> Result<Echo, Error> {
+    let api: Api<Echo> = Api::namespaced(client, namespace);
     let finalizer: Value = json!({
         "metadata": {
             "finalizers": null,
